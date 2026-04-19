@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "description": "Blur faces and sensitive info in photos. Private, AI-powered, runs entirely in your browser.",
   "private": true,
-  "scripts": {
-    "dev":   "npx serve . -p 3000",
-    "start": "npx serve . -p 3000"
-  },
   "keywords": [
     "blur",
     "privacy",
