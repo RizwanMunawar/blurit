@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Primary SEO -->
+  <title>BlurKit — Blur faces &amp; objects in photos instantly. Free &amp; private.</title>
+  <meta name="description" content="Free online tool to blur faces, license plates, and sensitive info in photos. AI auto-detects faces. Runs 100% in your browser — your images never leave your device.">
+  <meta name="keywords" content="blur faces, blur tool, blur photo online, face blur, privacy blur, pixelate faces, redact photo, hide faces, blur license plate">
+  <meta name="author" content="BlurKit">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://blurkit.app/">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://blurkit.app/">
+  <meta property="og:title" content="BlurKit — Blur faces &amp; objects in photos instantly">
+  <meta property="og:description" content="Free, private, one-click blur tool. Auto-detects faces. Runs entirely in your browser.">
+  <meta property="og:site_name" content="BlurKit">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="BlurKit — Blur faces &amp; objects in photos instantly">
+  <meta name="twitter:description" content="Free, private, one-click blur tool. Auto-detects faces. Runs entirely in your browser.">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/public/favicon.svg">
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "BlurKit",
+    "url": "https://blurkit.app/",
+    "description": "Free online tool to blur faces and sensitive information in photos. AI-powered, runs entirely in your browser.",
+    "applicationCategory": "PhotoEditingApplication",
+    "operatingSystem": "Any",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "featureList": [
+      "Automatic face detection",
+      "Click-to-blur",
+      "Draw blur regions",
+      "Multiple blur styles",
+      "Runs in browser (private)"
+    ]
+  }
+  </script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!-- face-api.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js" defer></script>
+</head>
+<body>
+
+<header>
+  <nav class="nav" aria-label="Primary">
+    <a href="/" class="brand" aria-label="BlurKit home">
+      <span class="brand-dot" aria-hidden="true"></span>
+      BlurKit
+    </a>
+    <div class="nav-links">
+      <a href="#tool">Tool</a>
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+    </div>
+  </nav>
+</header>
+
+<main>
+<section class="hero">
+  <div class="hero-mark" aria-hidden="true">
+    v1.0 — build 0419<br>
+    runs in / your / browser<br>
+    zero / uploads / zero / logs
+  </div>
+
+  <div class="hero-tag fade-up">
+    <span>Click · Blur · Done</span>
+  </div>
+
+  <h1 class="fade-up d1">
+    Blur faces.<br>
+    <em>Keep everything</em> <span class="strike">private</span><em>.</em>
+  </h1>
+
+  <p class="hero-sub fade-up d2">
+    Click a face. Drag a box. We blur it — <strong>instantly</strong>, with AI detecting faces automatically.
+    Your images <strong>never leave your browser</strong>. No upload. No account. No trail.
+  </p>
+
+  <div class="hero-cta fade-up d3">
+    <a href="#tool" class="btn-primary">
+      Start blurring
+      <span aria-hidden="true">→</span>
+    </a>
+    <a href="#how" class="btn-secondary">How it works</a>
+  </div>
+
+  <ul class="trust fade-up d4">
+    <li>100% in-browser</li>
+    <li>No signup</li>
+    <li>No watermarks</li>
+    <li>AI face detection</li>
+  </ul>
+</section>
+
+<section class="editor-section" id="tool" aria-label="Blur editor">
+  <div class="editor-frame">
+    <div class="editor-head">
+      <div class="editor-head-left">
+        <div class="editor-head-dots" aria-hidden="true">
+          <span class="editor-head-dot"></span>
+          <span class="editor-head-dot"></span>
+          <span class="editor-head-dot"></span>
+        </div>
+        <span>blurkit.editor</span>
+      </div>
+      <div class="editor-status">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span id="statusText">Ready</span>
+      </div>
+    </div>
+
+    <!-- Upload state -->
+    <div id="uploadZone" class="upload-zone" role="button" tabindex="0" aria-label="Upload image">
+      <div class="upload-inner">
+        <div class="upload-icon" aria-hidden="true">↑</div>
+        <div class="upload-title">Drop an image to <em>obscure</em></div>
+        <div class="upload-hint">Or click anywhere to select a file from your device</div>
+        <div class="upload-meta">
+          <span>JPG · PNG · WEBP</span>
+          <span>Max 20MB</span>
+          <span>Stays on your device</span>
+        </div>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" hidden>
+    </div>
+
+    <!-- Editor state -->
+    <div id="workspace" class="workspace">
+      <div class="canvas-area">
+        <div class="canvas-wrap mode-click" id="canvasWrap">
+          <canvas id="mainCanvas"></canvas>
+          <canvas id="overlayCanvas"></canvas>
+        </div>
+        <div class="loader-overlay" id="editorLoader" aria-live="polite">
+          <div class="loader-spinner" aria-hidden="true"></div>
+          <div class="loader-text" id="loaderText">Detecting faces…</div>
+        </div>
+      </div>
+
+      <aside class="controls" aria-label="Editor controls">
+        <div class="control-block">
+          <div class="control-label">
+            <span>Blur Style</span>
+          </div>
+          <div class="style-grid" role="radiogroup" aria-label="Blur style">
+            <button class="style-btn active" data-style="gaussian" role="radio" aria-checked="true">
+              <span class="style-preview" aria-hidden="true"></span>
+              <span>Gaussian</span>
+            </button>
+            <button class="style-btn" data-style="pixelate" role="radio" aria-checked="false">
+              <span class="style-preview" aria-hidden="true"></span>
+              <span>Pixelate</span>
+            </button>
+            <button class="style-btn" data-style="black" role="radio" aria-checked="false">
+              <span class="style-preview" aria-hidden="true"></span>
+              <span>Redact</span>
+            </button>
+            <button class="style-btn" data-style="emoji" role="radio" aria-checked="false">
+              <span class="style-preview" aria-hidden="true"></span>
+              <span>Emoji</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="control-block">
+          <div class="control-label">
+            <span>Intensity</span>
+            <span class="slider-value" id="intensityValue">20</span>
+          </div>
+          <input type="range" class="slider" id="intensitySlider" min="5" max="60" value="20" aria-label="Blur intensity">
+        </div>
+
+        <div class="control-block">
+          <div class="control-label">
+            <span>Tool</span>
+          </div>
+          <div class="mode-toggle" role="radiogroup" aria-label="Editor mode">
+            <button class="mode-btn active" data-mode="click" role="radio" aria-checked="true">Click</button>
+            <button class="mode-btn" data-mode="draw" role="radio" aria-checked="false">Draw</button>
+          </div>
+        </div>
+
+        <div class="control-block">
+          <div class="control-label">
+            <span>Regions</span>
+            <span class="control-count" id="regionCount">0</span>
+          </div>
+          <button class="action-btn" id="blurAllFacesBtn">
+            <span>Blur all faces</span>
+            <span id="facesDetected">0 found</span>
+          </button>
+          <button class="action-btn danger" id="clearAllBtn">
+            <span>Clear all</span>
+            <span aria-hidden="true">↺</span>
+          </button>
+        </div>
+
+        <div class="control-block" style="margin-top: auto;">
+          <button class="action-btn primary" id="downloadBtn">
+            <span>Download image</span>
+            <span aria-hidden="true">↓</span>
+          </button>
+          <button class="action-btn" id="newImageBtn">
+            <span>New image</span>
+            <span aria-hidden="true">+</span>
+          </button>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="features" aria-label="Features">
+  <div class="features-head">
+    <div class="section-tag">Why BlurKit</div>
+    <h2>Three promises. <em>No compromises.</em></h2>
+  </div>
+
+  <div class="features-grid">
+    <article class="feature">
+      <div class="feature-num">01 · Privacy</div>
+      <h3>Your image <em>never</em> leaves your browser.</h3>
+      <p>Everything runs on your device. No uploads to a server. No cloud processing. No logs. No trail. When you close the tab, there's nothing left behind — not on our end, because there's no "our end."</p>
+    </article>
+    <article class="feature">
+      <div class="feature-num">02 · AI Magic</div>
+      <h3>Faces are <em>found</em> before you click.</h3>
+      <p>The moment your image loads, AI maps every face in the frame. Click one to blur it. Click "Blur all" to redact everyone at once. The model runs locally — fast, accurate, private.</p>
+    </article>
+    <article class="feature">
+      <div class="feature-num">03 · Speed</div>
+      <h3>No signup. No waiting. <em>Ship it.</em></h3>
+      <p>Open the page, drop your image, blur, download. Under ten seconds, start to finish. No account. No paywall. No "verify your email." Just a tool that does the one thing you came here for.</p>
+    </article>
+  </div>
+</section>
+
+<section class="how" id="how" aria-label="How it works">
+  <div class="features-head">
+    <div class="section-tag">How it works</div>
+    <h2>Four steps. <em>Zero friction.</em></h2>
+  </div>
+
+  <div class="how-grid">
+    <article class="step">
+      <div class="step-num">01</div>
+      <h4>Drop your image</h4>
+      <p>Drag and drop, or click to select. JPG, PNG, or WebP. Up to 20MB. Loaded entirely in your browser memory.</p>
+    </article>
+    <article class="step">
+      <div class="step-num">02</div>
+      <h4>Faces auto-detect</h4>
+      <p>AI scans the image and highlights every face. Click a highlight to blur just that one — or blur everyone with a single button.</p>
+    </article>
+    <article class="step">
+      <div class="step-num">03</div>
+      <h4>Blur anything else</h4>
+      <p>Switch to Draw mode and drag a box over license plates, screens, addresses, logos — anything you want redacted.</p>
+    </article>
+    <article class="step">
+      <div class="step-num">04</div>
+      <h4>Download the result</h4>
+      <p>Pick your blur style (gaussian, pixelate, redact, or emoji), then hit download. Clean PNG. No watermark.</p>
+    </article>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="brand-dot" aria-hidden="true"></span>
+      BlurKit · Built with care for your privacy
+    </div>
+    <div>
+      Made for humans who don't want to be seen.
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite">Toast message</div>
+
+<script src="/js/app.js" defer></script>
+</body>
+</html>
