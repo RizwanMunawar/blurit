@@ -1,98 +1,973 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OBSCURA — Blur anything in one click. Privately.</title>
+<meta name="description" content="Click to blur faces, objects, and sensitive info in your photos. AI-powered, runs 100% in your browser. Your images never leave your device.">
 
-  <!-- Primary SEO -->
-  <title>BlurKit — Blur faces &amp; objects in photos instantly. Free &amp; private.</title>
-  <meta name="description" content="Free online tool to blur faces, license plates, and sensitive info in photos. AI auto-detects faces. Runs 100% in your browser — your images never leave your device.">
-  <meta name="keywords" content="blur faces, blur tool, blur photo online, face blur, privacy blur, pixelate faces, redact photo, hide faces, blur license plate">
-  <meta name="author" content="BlurKit">
-  <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://blurkit.app/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
 
-  <!-- Open Graph -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://blurkit.app/">
-  <meta property="og:title" content="BlurKit — Blur faces &amp; objects in photos instantly">
-  <meta property="og:description" content="Free, private, one-click blur tool. Auto-detects faces. Runs entirely in your browser.">
-  <meta property="og:site_name" content="BlurKit">
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
 
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="BlurKit — Blur faces &amp; objects in photos instantly">
-  <meta name="twitter:description" content="Free, private, one-click blur tool. Auto-detects faces. Runs entirely in your browser.">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="/public/favicon.svg">
-
-  <!-- Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    "name": "BlurKit",
-    "url": "https://blurkit.app/",
-    "description": "Free online tool to blur faces and sensitive information in photos. AI-powered, runs entirely in your browser.",
-    "applicationCategory": "PhotoEditingApplication",
-    "operatingSystem": "Any",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD"
-    },
-    "featureList": [
-      "Automatic face detection",
-      "Click-to-blur",
-      "Draw blur regions",
-      "Multiple blur styles",
-      "Runs in browser (private)"
-    ]
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg-elev: #141414;
+    --bg-elev-2: #1c1c1c;
+    --ink: #f4f1ea;
+    --ink-dim: #9a968a;
+    --ink-faint: #5a564c;
+    --line: #2a2824;
+    --accent: #c8ff47;
+    --accent-dim: #8ba02e;
+    --danger: #ff6b4a;
+    --grain-op: 0.03;
   }
-  </script>
 
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="/css/style.css">
+  html { scroll-behavior: smooth; }
 
-  <!-- face-api.js from CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js" defer></script>
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    overflow-x: hidden;
+    position: relative;
+    min-height: 100vh;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.4) 1px, transparent 0);
+    background-size: 3px 3px;
+    opacity: var(--grain-op);
+    pointer-events: none;
+    z-index: 1000;
+    mix-blend-mode: overlay;
+  }
+
+  /* Header */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,10,0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .nav {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .brand {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-dot {
+    width: 10px; height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.9); }
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .nav-links a {
+    color: var(--ink-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--accent); }
+
+  @media (max-width: 640px) {
+    .nav-links { display: none; }
+  }
+
+  /* Hero */
+  .hero {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 80px 32px 60px;
+    position: relative;
+  }
+
+  .hero-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .hero-tag::before {
+    content: '';
+    width: 24px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: clamp(48px, 8vw, 112px);
+    line-height: 0.95;
+    letter-spacing: -0.035em;
+    margin-bottom: 32px;
+    max-width: 1100px;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--accent);
+  }
+
+  .hero h1 .strike {
+    position: relative;
+    display: inline-block;
+  }
+
+  .hero h1 .strike::after {
+    content: '';
+    position: absolute;
+    left: -4px; right: -4px;
+    top: 52%;
+    height: 5px;
+    background: var(--accent);
+    transform: rotate(-2deg);
+  }
+
+  .hero-sub {
+    font-size: clamp(17px, 1.8vw, 22px);
+    color: var(--ink-dim);
+    max-width: 620px;
+    line-height: 1.5;
+    margin-bottom: 40px;
+  }
+
+  .hero-sub strong {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .hero-cta {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+    padding: 18px 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+
+  .btn-primary:hover {
+    background: var(--ink);
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0 var(--accent);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--ink);
+    padding: 18px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    border: 1px solid var(--line);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--ink);
+  }
+
+  /* Trust bar */
+  .trust {
+    display: flex;
+    gap: 32px;
+    margin-top: 48px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    flex-wrap: wrap;
+  }
+
+  .trust span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .trust span::before {
+    content: '✓';
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Editor section */
+  .editor-section {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 40px 32px 100px;
+  }
+
+  .editor-frame {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .editor-head {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-dim);
+  }
+
+  .editor-head-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .editor-head-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--line);
+  }
+
+  .editor-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    min-height: 480px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 32px;
+    cursor: pointer;
+    position: relative;
+    border: 2px dashed var(--line);
+    margin: 24px;
+    border-radius: 4px;
+    transition: all 0.25s;
+  }
+
+  .upload-zone:hover,
+  .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(200, 255, 71, 0.02);
+  }
+
+  .upload-inner {
+    text-align: center;
+    max-width: 480px;
+  }
+
+  .upload-icon {
+    font-size: 56px;
+    margin-bottom: 20px;
+    display: inline-block;
+    font-family: 'Fraunces', serif;
+    color: var(--accent);
+  }
+
+  .upload-title {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+
+  .upload-title em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .upload-hint {
+    color: var(--ink-dim);
+    font-size: 15px;
+    margin-bottom: 24px;
+  }
+
+  .upload-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  /* Editor workspace */
+  .workspace {
+    display: none;
+    grid-template-columns: 1fr 320px;
+    gap: 0;
+    min-height: 600px;
+  }
+
+  .workspace.active { display: grid; }
+
+  @media (max-width: 900px) {
+    .workspace { grid-template-columns: 1fr; }
+  }
+
+  .canvas-area {
+    background:
+      linear-gradient(45deg, #1a1a1a 25%, transparent 25%),
+      linear-gradient(-45deg, #1a1a1a 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #1a1a1a 75%),
+      linear-gradient(-45deg, transparent 75%, #1a1a1a 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+    background-color: #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    min-height: 500px;
+  }
+
+  .canvas-wrap {
+    position: relative;
+    max-width: 100%;
+    max-height: 100%;
+    display: inline-block;
+    line-height: 0;
+  }
+
+  #mainCanvas, #overlayCanvas {
+    max-width: 100%;
+    max-height: 70vh;
+    display: block;
+  }
+
+  #overlayCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    cursor: crosshair;
+  }
+
+  .canvas-wrap.mode-click #overlayCanvas {
+    cursor: pointer;
+  }
+
+  /* Controls sidebar */
+  .controls {
+    background: var(--bg-elev-2);
+    border-left: 1px solid var(--line);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    overflow-y: auto;
+    max-height: 80vh;
+  }
+
+  @media (max-width: 900px) {
+    .controls { border-left: none; border-top: 1px solid var(--line); }
+  }
+
+  .control-block {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .control-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-dim);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .control-count {
+    background: var(--accent);
+    color: var(--bg);
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-weight: 700;
+  }
+
+  .style-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .style-btn {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--ink-dim);
+    padding: 14px 10px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    border-radius: 2px;
+  }
+
+  .style-btn:hover {
+    border-color: var(--ink-dim);
+    color: var(--ink);
+  }
+
+  .style-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(200, 255, 71, 0.05);
+  }
+
+  .style-preview {
+    width: 36px;
+    height: 22px;
+    border-radius: 2px;
+    background: linear-gradient(135deg, #666, #aaa);
+  }
+
+  .style-btn[data-style="gaussian"] .style-preview {
+    filter: blur(3px);
+  }
+
+  .style-btn[data-style="pixelate"] .style-preview {
+    background:
+      linear-gradient(to right, #6a6a6a 25%, #999 25% 50%, #777 50% 75%, #aaa 75%);
+    background-size: 25% 100%;
+    filter: none;
+  }
+
+  .style-btn[data-style="black"] .style-preview {
+    background: #000;
+    border: 1px solid #333;
+  }
+
+  .style-btn[data-style="emoji"] .style-preview {
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .style-btn[data-style="emoji"] .style-preview::before {
+    content: '🙂';
+  }
+
+  /* Action buttons */
+  .action-btn {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    padding: 14px 16px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    border-radius: 2px;
+  }
+
+  .action-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .action-btn.primary {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  .action-btn.primary:hover:not(:disabled) {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+
+  .action-btn.danger:hover:not(:disabled) {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+  .mode-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .mode-btn {
+    background: transparent;
+    border: none;
+    color: var(--ink-dim);
+    padding: 10px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all 0.15s;
+    border-radius: 2px;
+  }
+
+  .mode-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 700;
+  }
+
+  /* Range slider */
+  .slider-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--line);
+    outline: none;
+    border-radius: 2px;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    cursor: pointer;
+    border-radius: 50%;
+  }
+
+  .slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    cursor: pointer;
+    border-radius: 50%;
+    border: none;
+  }
+
+  .slider-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+  }
+
+  /* Features grid */
+  .features {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 100px 32px;
+    border-top: 1px solid var(--line);
+  }
+
+  .features-head {
+    margin-bottom: 60px;
+    max-width: 900px;
+  }
+
+  .section-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ink-faint);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-tag::before {
+    content: '';
+    width: 20px;
+    height: 1px;
+    background: var(--ink-faint);
+  }
+
+  .features h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: clamp(36px, 5vw, 64px);
+    line-height: 1;
+    letter-spacing: -0.025em;
+  }
+
+  .features h2 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+
+  @media (max-width: 900px) {
+    .features-grid { grid-template-columns: 1fr; }
+  }
+
+  .feature {
+    background: var(--bg);
+    padding: 40px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 280px;
+    position: relative;
+    transition: background 0.2s;
+  }
+
+  .feature:hover { background: var(--bg-elev); }
+
+  .feature-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    margin-bottom: auto;
+  }
+
+  .feature h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .feature h3 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .feature p {
+    color: var(--ink-dim);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* How it works */
+  .how {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 60px 32px 100px;
+  }
+
+  .how-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    margin-top: 60px;
+  }
+
+  @media (max-width: 900px) {
+    .how-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 560px) {
+    .how-grid { grid-template-columns: 1fr; }
+  }
+
+  .step {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: 24px;
+    border-top: 2px solid var(--accent);
+  }
+
+  .step-num {
+    font-family: 'Fraunces', serif;
+    font-size: 48px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .step h4 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  .step p {
+    color: var(--ink-dim);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 48px 32px;
+    margin-top: 40px;
+  }
+
+  .footer-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-faint);
+  }
+
+  .footer-inner a {
+    color: var(--ink-dim);
+    text-decoration: none;
+  }
+
+  .footer-inner a:hover { color: var(--accent); }
+
+  /* Loading */
+  .loader-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10,10,10,0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+    z-index: 10;
+    backdrop-filter: blur(4px);
+  }
+
+  .loader-overlay.active { display: flex; }
+
+  .loader-spinner {
+    width: 48px;
+    height: 48px;
+    border: 2px solid var(--line);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loader-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ink-dim);
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--bg-elev-2);
+    border: 1px solid var(--accent);
+    color: var(--ink);
+    padding: 16px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    z-index: 200;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    border-radius: 2px;
+    max-width: 90vw;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* Hero mark / decorative */
+  .hero-mark {
+    position: absolute;
+    top: 60px;
+    right: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-align: right;
+    line-height: 1.6;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.6;
+  }
+
+  @media (max-width: 900px) { .hero-mark { display: none; } }
+
+  /* Fade in */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
+
+  .fade-up.d1 { animation-delay: 0.1s; }
+  .fade-up.d2 { animation-delay: 0.2s; }
+  .fade-up.d3 { animation-delay: 0.3s; }
+  .fade-up.d4 { animation-delay: 0.4s; }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
 </head>
 <body>
 
 <header>
-  <nav class="nav" aria-label="Primary">
-    <a href="/" class="brand" aria-label="BlurKit home">
-      <span class="brand-dot" aria-hidden="true"></span>
-      BlurKit
-    </a>
+  <div class="nav">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      OBSCURA
+    </div>
     <div class="nav-links">
       <a href="#tool">Tool</a>
-      <a href="#features">Features</a>
+      <a href="#features">Why Obscura</a>
       <a href="#how">How it works</a>
     </div>
-  </nav>
+  </div>
 </header>
 
-<main>
 <section class="hero">
-  <div class="hero-mark" aria-hidden="true">
-    v1.0 — build 0419<br>
+  <div class="hero-mark">
+    v0.1 — build 0419<br>
     runs in / your / browser<br>
     zero / uploads / zero / logs
   </div>
 
   <div class="hero-tag fade-up">
-    <span>Click · Blur · Done</span>
+    <span>Click. Blur. Done.</span>
   </div>
 
   <h1 class="fade-up d1">
-    Blur faces.<br>
+    Blur anything.<br>
     <em>Keep everything</em> <span class="strike">private</span><em>.</em>
   </h1>
 
@@ -103,41 +978,40 @@
 
   <div class="hero-cta fade-up d3">
     <a href="#tool" class="btn-primary">
-      Start blurring
-      <span aria-hidden="true">→</span>
+      Start blurring →
     </a>
     <a href="#how" class="btn-secondary">How it works</a>
   </div>
 
-  <ul class="trust fade-up d4">
-    <li>100% in-browser</li>
-    <li>No signup</li>
-    <li>No watermarks</li>
-    <li>AI face detection</li>
-  </ul>
+  <div class="trust fade-up d4">
+    <span>100% in-browser</span>
+    <span>No signup</span>
+    <span>No watermarks</span>
+    <span>AI face detection</span>
+  </div>
 </section>
 
-<section class="editor-section" id="tool" aria-label="Blur editor">
+<section class="editor-section" id="tool">
   <div class="editor-frame">
     <div class="editor-head">
-      <div class="editor-head-left">
-        <div class="editor-head-dots" aria-hidden="true">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <div class="editor-head-dots">
           <span class="editor-head-dot"></span>
           <span class="editor-head-dot"></span>
           <span class="editor-head-dot"></span>
         </div>
-        <span>blurkit.editor</span>
+        <span>obscura.editor</span>
       </div>
       <div class="editor-status">
-        <span class="status-dot" aria-hidden="true"></span>
+        <span class="status-dot"></span>
         <span id="statusText">Ready</span>
       </div>
     </div>
 
     <!-- Upload state -->
-    <div id="uploadZone" class="upload-zone" role="button" tabindex="0" aria-label="Upload image">
+    <div id="uploadZone" class="upload-zone">
       <div class="upload-inner">
-        <div class="upload-icon" aria-hidden="true">↑</div>
+        <div class="upload-icon">↑</div>
         <div class="upload-title">Drop an image to <em>obscure</em></div>
         <div class="upload-hint">Or click anywhere to select a file from your device</div>
         <div class="upload-meta">
@@ -146,7 +1020,7 @@
           <span>Stays on your device</span>
         </div>
       </div>
-      <input type="file" id="fileInput" accept="image/*" hidden>
+      <input type="file" id="fileInput" accept="image/*" style="display:none">
     </div>
 
     <!-- Editor state -->
@@ -156,32 +1030,32 @@
           <canvas id="mainCanvas"></canvas>
           <canvas id="overlayCanvas"></canvas>
         </div>
-        <div class="loader-overlay" id="editorLoader" aria-live="polite">
-          <div class="loader-spinner" aria-hidden="true"></div>
+        <div class="loader-overlay" id="editorLoader">
+          <div class="loader-spinner"></div>
           <div class="loader-text" id="loaderText">Detecting faces…</div>
         </div>
       </div>
 
-      <aside class="controls" aria-label="Editor controls">
+      <div class="controls">
         <div class="control-block">
           <div class="control-label">
             <span>Blur Style</span>
           </div>
-          <div class="style-grid" role="radiogroup" aria-label="Blur style">
-            <button class="style-btn active" data-style="gaussian" role="radio" aria-checked="true">
-              <span class="style-preview" aria-hidden="true"></span>
+          <div class="style-grid">
+            <button class="style-btn active" data-style="gaussian">
+              <span class="style-preview"></span>
               <span>Gaussian</span>
             </button>
-            <button class="style-btn" data-style="pixelate" role="radio" aria-checked="false">
-              <span class="style-preview" aria-hidden="true"></span>
+            <button class="style-btn" data-style="pixelate">
+              <span class="style-preview"></span>
               <span>Pixelate</span>
             </button>
-            <button class="style-btn" data-style="black" role="radio" aria-checked="false">
-              <span class="style-preview" aria-hidden="true"></span>
+            <button class="style-btn" data-style="black">
+              <span class="style-preview"></span>
               <span>Redact</span>
             </button>
-            <button class="style-btn" data-style="emoji" role="radio" aria-checked="false">
-              <span class="style-preview" aria-hidden="true"></span>
+            <button class="style-btn" data-style="emoji">
+              <span class="style-preview"></span>
               <span>Emoji</span>
             </button>
           </div>
@@ -192,16 +1066,16 @@
             <span>Intensity</span>
             <span class="slider-value" id="intensityValue">20</span>
           </div>
-          <input type="range" class="slider" id="intensitySlider" min="5" max="60" value="20" aria-label="Blur intensity">
+          <input type="range" class="slider" id="intensitySlider" min="5" max="60" value="20">
         </div>
 
         <div class="control-block">
           <div class="control-label">
             <span>Tool</span>
           </div>
-          <div class="mode-toggle" role="radiogroup" aria-label="Editor mode">
-            <button class="mode-btn active" data-mode="click" role="radio" aria-checked="true">Click</button>
-            <button class="mode-btn" data-mode="draw" role="radio" aria-checked="false">Draw</button>
+          <div class="mode-toggle">
+            <button class="mode-btn active" data-mode="click">Click</button>
+            <button class="mode-btn" data-mode="draw">Draw</button>
           </div>
         </div>
 
@@ -216,86 +1090,85 @@
           </button>
           <button class="action-btn danger" id="clearAllBtn">
             <span>Clear all</span>
-            <span aria-hidden="true">↺</span>
+            <span>↺</span>
           </button>
         </div>
 
         <div class="control-block" style="margin-top: auto;">
           <button class="action-btn primary" id="downloadBtn">
             <span>Download image</span>
-            <span aria-hidden="true">↓</span>
+            <span>↓</span>
           </button>
           <button class="action-btn" id="newImageBtn">
             <span>New image</span>
-            <span aria-hidden="true">+</span>
+            <span>+</span>
           </button>
         </div>
-      </aside>
+      </div>
     </div>
   </div>
 </section>
 
-<section class="features" id="features" aria-label="Features">
+<section class="features" id="features">
   <div class="features-head">
-    <div class="section-tag">Why BlurKit</div>
+    <div class="section-tag">Why Obscura</div>
     <h2>Three promises. <em>No compromises.</em></h2>
   </div>
 
   <div class="features-grid">
-    <article class="feature">
-      <div class="feature-num">01 · Privacy</div>
+    <div class="feature">
+      <div class="feature-num">01 / Privacy</div>
       <h3>Your image <em>never</em> leaves your browser.</h3>
       <p>Everything runs on your device. No uploads to a server. No cloud processing. No logs. No trail. When you close the tab, there's nothing left behind — not on our end, because there's no "our end."</p>
-    </article>
-    <article class="feature">
-      <div class="feature-num">02 · AI Magic</div>
+    </div>
+    <div class="feature">
+      <div class="feature-num">02 / AI Magic</div>
       <h3>Faces are <em>found</em> before you click.</h3>
       <p>The moment your image loads, AI maps every face in the frame. Click one to blur it. Click "Blur all" to redact everyone at once. The model runs locally — fast, accurate, private.</p>
-    </article>
-    <article class="feature">
-      <div class="feature-num">03 · Speed</div>
+    </div>
+    <div class="feature">
+      <div class="feature-num">03 / Speed</div>
       <h3>No signup. No waiting. <em>Ship it.</em></h3>
       <p>Open the page, drop your image, blur, download. Under ten seconds, start to finish. No account. No paywall. No "verify your email." Just a tool that does the one thing you came here for.</p>
-    </article>
+    </div>
   </div>
 </section>
 
-<section class="how" id="how" aria-label="How it works">
+<section class="how" id="how">
   <div class="features-head">
     <div class="section-tag">How it works</div>
     <h2>Four steps. <em>Zero friction.</em></h2>
   </div>
 
   <div class="how-grid">
-    <article class="step">
+    <div class="step">
       <div class="step-num">01</div>
       <h4>Drop your image</h4>
       <p>Drag and drop, or click to select. JPG, PNG, or WebP. Up to 20MB. Loaded entirely in your browser memory.</p>
-    </article>
-    <article class="step">
+    </div>
+    <div class="step">
       <div class="step-num">02</div>
       <h4>Faces auto-detect</h4>
       <p>AI scans the image and highlights every face. Click a highlight to blur just that one — or blur everyone with a single button.</p>
-    </article>
-    <article class="step">
+    </div>
+    <div class="step">
       <div class="step-num">03</div>
       <h4>Blur anything else</h4>
       <p>Switch to Draw mode and drag a box over license plates, screens, addresses, logos — anything you want redacted.</p>
-    </article>
-    <article class="step">
+    </div>
+    <div class="step">
       <div class="step-num">04</div>
       <h4>Download the result</h4>
       <p>Pick your blur style (gaussian, pixelate, redact, or emoji), then hit download. Clean PNG. No watermark.</p>
-    </article>
+    </div>
   </div>
 </section>
-</main>
 
 <footer>
   <div class="footer-inner">
-    <div class="footer-brand">
-      <span class="brand-dot" aria-hidden="true"></span>
-      BlurKit · Built with care for your privacy
+    <div>
+      <span class="brand-dot" style="display:inline-block; margin-right:8px; vertical-align:middle;"></span>
+      Obscura · Built with care for your privacy
     </div>
     <div>
       Made for humans who don't want to be seen.
@@ -303,8 +1176,547 @@
   </div>
 </footer>
 
-<div class="toast" id="toast" role="status" aria-live="polite">Toast message</div>
+<div class="toast" id="toast">Toast message</div>
 
-<script src="/js/app.js" defer></script>
+<script>
+// ============================================================
+// OBSCURA — Client-side blur tool
+// ============================================================
+
+const state = {
+  image: null,
+  faces: [],
+  customRegions: [],
+  style: 'gaussian',
+  intensity: 20,
+  mode: 'click',
+  scale: 1,
+  drawing: null,
+  modelsLoaded: false,
+  nextId: 1,
+};
+
+const els = {
+  uploadZone: document.getElementById('uploadZone'),
+  fileInput: document.getElementById('fileInput'),
+  workspace: document.getElementById('workspace'),
+  mainCanvas: document.getElementById('mainCanvas'),
+  overlayCanvas: document.getElementById('overlayCanvas'),
+  canvasWrap: document.getElementById('canvasWrap'),
+  loader: document.getElementById('editorLoader'),
+  loaderText: document.getElementById('loaderText'),
+  status: document.getElementById('statusText'),
+  intensitySlider: document.getElementById('intensitySlider'),
+  intensityValue: document.getElementById('intensityValue'),
+  regionCount: document.getElementById('regionCount'),
+  facesDetected: document.getElementById('facesDetected'),
+  blurAllFacesBtn: document.getElementById('blurAllFacesBtn'),
+  clearAllBtn: document.getElementById('clearAllBtn'),
+  downloadBtn: document.getElementById('downloadBtn'),
+  newImageBtn: document.getElementById('newImageBtn'),
+  toast: document.getElementById('toast'),
+};
+
+const mainCtx = els.mainCanvas.getContext('2d');
+const overlayCtx = els.overlayCanvas.getContext('2d');
+
+let toastTimeout;
+function toast(message, duration = 2800) {
+  els.toast.textContent = message;
+  els.toast.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => els.toast.classList.remove('show'), duration);
+}
+
+async function ensureModelsLoaded() {
+  if (state.modelsLoaded) return true;
+  try {
+    els.loaderText.textContent = 'Loading AI model…';
+    els.loader.classList.add('active');
+    const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    state.modelsLoaded = true;
+    return true;
+  } catch (err) {
+    console.error('Model load failed', err);
+    toast('Could not load face detection model. Manual blur still works.');
+    return false;
+  }
+}
+
+els.uploadZone.addEventListener('click', () => els.fileInput.click());
+els.fileInput.addEventListener('change', (e) => {
+  if (e.target.files[0]) loadImage(e.target.files[0]);
+});
+
+els.uploadZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  els.uploadZone.classList.add('drag-over');
+});
+els.uploadZone.addEventListener('dragleave', () => {
+  els.uploadZone.classList.remove('drag-over');
+});
+els.uploadZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  els.uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) loadImage(file);
+});
+
+document.addEventListener('paste', (e) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) loadImage(file);
+      return;
+    }
+  }
+});
+
+async function loadImage(file) {
+  if (file.size > 20 * 1024 * 1024) {
+    toast('File too large — max 20MB');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const img = new Image();
+    img.onload = async () => {
+      state.image = img;
+      state.faces = [];
+      state.customRegions = [];
+      state.nextId = 1;
+
+      const MAX_W = 1200;
+      const MAX_H = 900;
+      let w = img.naturalWidth;
+      let h = img.naturalHeight;
+      state.scale = 1;
+      if (w > MAX_W || h > MAX_H) {
+        state.scale = Math.min(MAX_W / w, MAX_H / h);
+        w = Math.round(w * state.scale);
+        h = Math.round(h * state.scale);
+      }
+
+      els.mainCanvas.width = w;
+      els.mainCanvas.height = h;
+      els.overlayCanvas.width = w;
+      els.overlayCanvas.height = h;
+
+      els.uploadZone.style.display = 'none';
+      els.workspace.classList.add('active');
+
+      renderMainCanvas();
+      await runFaceDetection();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runFaceDetection() {
+  const loaded = await ensureModelsLoaded();
+  if (!loaded) {
+    els.loader.classList.remove('active');
+    updateStatus('Manual mode — draw regions to blur');
+    return;
+  }
+
+  els.loaderText.textContent = 'Detecting faces…';
+  els.loader.classList.add('active');
+
+  try {
+    const detections = await faceapi.detectAllFaces(
+      els.mainCanvas,
+      new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.4 })
+    );
+
+    state.faces = detections.map((d) => ({
+      id: state.nextId++,
+      box: {
+        x: Math.max(0, d.box.x - d.box.width * 0.1),
+        y: Math.max(0, d.box.y - d.box.height * 0.15),
+        width: d.box.width * 1.2,
+        height: d.box.height * 1.3,
+      },
+      blurred: false,
+    }));
+
+    els.facesDetected.textContent = `${state.faces.length} found`;
+    if (state.faces.length === 0) {
+      updateStatus('No faces detected — use Draw mode for manual blur');
+    } else {
+      updateStatus(`${state.faces.length} face${state.faces.length === 1 ? '' : 's'} detected — click to blur`);
+    }
+  } catch (err) {
+    console.error(err);
+    toast('Face detection failed — manual blur still works');
+  }
+
+  els.loader.classList.remove('active');
+  renderMainCanvas();
+  renderOverlay();
+}
+
+function updateStatus(text) {
+  els.status.textContent = text;
+}
+
+function renderMainCanvas() {
+  if (!state.image) return;
+  const { width: w, height: h } = els.mainCanvas;
+  mainCtx.drawImage(state.image, 0, 0, w, h);
+  state.faces.forEach((face) => {
+    if (face.blurred) applyBlurToRegion(face.box.x, face.box.y, face.box.width, face.box.height);
+  });
+  state.customRegions.forEach((r) => {
+    applyBlurToRegion(r.x, r.y, r.w, r.h);
+  });
+}
+
+function applyBlurToRegion(x, y, w, h) {
+  x = Math.round(Math.max(0, x));
+  y = Math.round(Math.max(0, y));
+  w = Math.round(Math.min(w, els.mainCanvas.width - x));
+  h = Math.round(Math.min(h, els.mainCanvas.height - y));
+  if (w <= 0 || h <= 0) return;
+
+  if (state.style === 'gaussian') {
+    const tmp = document.createElement('canvas');
+    tmp.width = w; tmp.height = h;
+    const tctx = tmp.getContext('2d');
+    tctx.filter = `blur(${Math.round(state.intensity / 2)}px)`;
+    tctx.drawImage(els.mainCanvas, x, y, w, h, 0, 0, w, h);
+    mainCtx.drawImage(tmp, x, y);
+  } else if (state.style === 'pixelate') {
+    const pixSize = Math.max(2, Math.round(state.intensity / 2));
+    const tmp = document.createElement('canvas');
+    const sw = Math.max(1, Math.floor(w / pixSize));
+    const sh = Math.max(1, Math.floor(h / pixSize));
+    tmp.width = sw; tmp.height = sh;
+    const tctx = tmp.getContext('2d');
+    tctx.imageSmoothingEnabled = false;
+    tctx.drawImage(els.mainCanvas, x, y, w, h, 0, 0, sw, sh);
+    mainCtx.imageSmoothingEnabled = false;
+    mainCtx.drawImage(tmp, 0, 0, sw, sh, x, y, w, h);
+    mainCtx.imageSmoothingEnabled = true;
+  } else if (state.style === 'black') {
+    mainCtx.fillStyle = '#000';
+    mainCtx.fillRect(x, y, w, h);
+  } else if (state.style === 'emoji') {
+    mainCtx.fillStyle = '#000';
+    mainCtx.fillRect(x, y, w, h);
+    const emoji = '🙂';
+    const fontSize = Math.min(w, h) * 0.75;
+    mainCtx.font = `${fontSize}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+    mainCtx.textAlign = 'center';
+    mainCtx.textBaseline = 'middle';
+    mainCtx.fillText(emoji, x + w / 2, y + h / 2);
+  }
+}
+
+function renderOverlay() {
+  const { width: w, height: h } = els.overlayCanvas;
+  overlayCtx.clearRect(0, 0, w, h);
+
+  state.faces.forEach((face) => {
+    const { x, y, width, height } = face.box;
+    if (face.blurred) {
+      overlayCtx.strokeStyle = 'rgba(200, 255, 71, 0.8)';
+      overlayCtx.lineWidth = 2;
+      overlayCtx.setLineDash([6, 4]);
+      overlayCtx.strokeRect(x, y, width, height);
+      overlayCtx.setLineDash([]);
+      drawBadge(x + width - 24, y + 4, '✓', 'rgba(200, 255, 71, 0.95)', '#0a0a0a');
+    } else {
+      overlayCtx.strokeStyle = 'rgba(200, 255, 71, 0.9)';
+      overlayCtx.lineWidth = 2;
+      overlayCtx.strokeRect(x, y, width, height);
+      const b = Math.min(14, width/4, height/4);
+      overlayCtx.lineWidth = 3;
+      const corners = [
+        [x, y, x+b, y, x, y+b],
+        [x+width, y, x+width-b, y, x+width, y+b],
+        [x, y+height, x+b, y+height, x, y+height-b],
+        [x+width, y+height, x+width-b, y+height, x+width, y+height-b],
+      ];
+      corners.forEach(([ax,ay,bx,by,cx,cy]) => {
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(bx, by);
+        overlayCtx.lineTo(ax, ay);
+        overlayCtx.lineTo(cx, cy);
+        overlayCtx.stroke();
+      });
+    }
+  });
+
+  state.customRegions.forEach((r) => {
+    overlayCtx.strokeStyle = 'rgba(200, 255, 71, 0.8)';
+    overlayCtx.lineWidth = 2;
+    overlayCtx.setLineDash([6, 4]);
+    overlayCtx.strokeRect(r.x, r.y, r.w, r.h);
+    overlayCtx.setLineDash([]);
+    drawBadge(r.x + r.w - 22, r.y + 2, '×', 'rgba(255, 107, 74, 0.95)', '#fff');
+  });
+
+  if (state.drawing) {
+    const { startX, startY, currentX, currentY } = state.drawing;
+    const x = Math.min(startX, currentX);
+    const y = Math.min(startY, currentY);
+    const w = Math.abs(currentX - startX);
+    const h = Math.abs(currentY - startY);
+    overlayCtx.fillStyle = 'rgba(200, 255, 71, 0.1)';
+    overlayCtx.fillRect(x, y, w, h);
+    overlayCtx.strokeStyle = 'rgba(200, 255, 71, 1)';
+    overlayCtx.lineWidth = 2;
+    overlayCtx.setLineDash([4, 4]);
+    overlayCtx.strokeRect(x, y, w, h);
+    overlayCtx.setLineDash([]);
+  }
+
+  updateRegionCount();
+}
+
+function drawBadge(x, y, text, bg, fg) {
+  overlayCtx.fillStyle = bg;
+  overlayCtx.fillRect(x, y, 20, 20);
+  overlayCtx.fillStyle = fg;
+  overlayCtx.font = 'bold 14px sans-serif';
+  overlayCtx.textAlign = 'center';
+  overlayCtx.textBaseline = 'middle';
+  overlayCtx.fillText(text, x + 10, y + 11);
+}
+
+function updateRegionCount() {
+  const blurredFaces = state.faces.filter((f) => f.blurred).length;
+  const total = blurredFaces + state.customRegions.length;
+  els.regionCount.textContent = total;
+}
+
+function getCanvasCoords(e) {
+  const rect = els.overlayCanvas.getBoundingClientRect();
+  const sx = els.overlayCanvas.width / rect.width;
+  const sy = els.overlayCanvas.height / rect.height;
+  const point = e.touches ? e.touches[0] : e;
+  return {
+    x: (point.clientX - rect.left) * sx,
+    y: (point.clientY - rect.top) * sy,
+  };
+}
+
+els.overlayCanvas.addEventListener('mousedown', onPointerDown);
+els.overlayCanvas.addEventListener('mousemove', onPointerMove);
+els.overlayCanvas.addEventListener('mouseup', onPointerUp);
+els.overlayCanvas.addEventListener('mouseleave', onPointerUp);
+els.overlayCanvas.addEventListener('touchstart', onPointerDown, { passive: false });
+els.overlayCanvas.addEventListener('touchmove', onPointerMove, { passive: false });
+els.overlayCanvas.addEventListener('touchend', onPointerUp);
+
+function onPointerDown(e) {
+  e.preventDefault();
+  const { x, y } = getCanvasCoords(e);
+
+  if (state.mode === 'click') {
+    for (let i = state.customRegions.length - 1; i >= 0; i--) {
+      const r = state.customRegions[i];
+      const bx = r.x + r.w - 22;
+      const by = r.y + 2;
+      if (x >= bx && x <= bx + 20 && y >= by && y <= by + 20) {
+        state.customRegions.splice(i, 1);
+        renderMainCanvas();
+        renderOverlay();
+        return;
+      }
+    }
+
+    for (let i = state.faces.length - 1; i >= 0; i--) {
+      const f = state.faces[i];
+      if (
+        x >= f.box.x && x <= f.box.x + f.box.width &&
+        y >= f.box.y && y <= f.box.y + f.box.height
+      ) {
+        f.blurred = !f.blurred;
+        renderMainCanvas();
+        renderOverlay();
+        return;
+      }
+    }
+  } else if (state.mode === 'draw') {
+    state.drawing = { startX: x, startY: y, currentX: x, currentY: y };
+  }
+}
+
+function onPointerMove(e) {
+  if (!state.drawing) return;
+  e.preventDefault();
+  const { x, y } = getCanvasCoords(e);
+  state.drawing.currentX = x;
+  state.drawing.currentY = y;
+  renderOverlay();
+}
+
+function onPointerUp(e) {
+  if (!state.drawing) return;
+  const { startX, startY, currentX, currentY } = state.drawing;
+  const x = Math.min(startX, currentX);
+  const y = Math.min(startY, currentY);
+  const w = Math.abs(currentX - startX);
+  const h = Math.abs(currentY - startY);
+  state.drawing = null;
+
+  if (w > 10 && h > 10) {
+    state.customRegions.push({ id: state.nextId++, x, y, w, h });
+    renderMainCanvas();
+    renderOverlay();
+  } else {
+    renderOverlay();
+  }
+}
+
+document.querySelectorAll('.style-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.style-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.style = btn.dataset.style;
+    renderMainCanvas();
+    renderOverlay();
+  });
+});
+
+document.querySelectorAll('.mode-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.mode = btn.dataset.mode;
+    els.canvasWrap.className = 'canvas-wrap mode-' + state.mode;
+    if (state.mode === 'draw') {
+      updateStatus('Draw mode — drag a box over anything to blur');
+    } else {
+      updateStatus('Click mode — click a face or drawn region');
+    }
+  });
+});
+
+els.intensitySlider.addEventListener('input', (e) => {
+  state.intensity = parseInt(e.target.value, 10);
+  els.intensityValue.textContent = state.intensity;
+  renderMainCanvas();
+  renderOverlay();
+});
+
+els.blurAllFacesBtn.addEventListener('click', () => {
+  if (state.faces.length === 0) {
+    toast('No faces detected in this image');
+    return;
+  }
+  const allBlurred = state.faces.every((f) => f.blurred);
+  state.faces.forEach((f) => { f.blurred = !allBlurred; });
+  renderMainCanvas();
+  renderOverlay();
+  toast(allBlurred ? 'Unblurred all faces' : `Blurred ${state.faces.length} face${state.faces.length === 1 ? '' : 's'}`);
+});
+
+els.clearAllBtn.addEventListener('click', () => {
+  state.faces.forEach((f) => { f.blurred = false; });
+  state.customRegions = [];
+  renderMainCanvas();
+  renderOverlay();
+  toast('Cleared all blur regions');
+});
+
+els.downloadBtn.addEventListener('click', () => {
+  if (!state.image) return;
+  const outCanvas = document.createElement('canvas');
+  outCanvas.width = state.image.naturalWidth;
+  outCanvas.height = state.image.naturalHeight;
+  const outCtx = outCanvas.getContext('2d');
+  outCtx.drawImage(state.image, 0, 0);
+
+  const scaleX = outCanvas.width / els.mainCanvas.width;
+  const scaleY = outCanvas.height / els.mainCanvas.height;
+
+  const applyScaled = (x, y, w, h) => {
+    const sx = Math.round(x * scaleX);
+    const sy = Math.round(y * scaleY);
+    const sw = Math.round(w * scaleX);
+    const sh = Math.round(h * scaleY);
+    applyBlurToCanvas(outCanvas, outCtx, sx, sy, sw, sh);
+  };
+
+  state.faces.forEach((f) => {
+    if (f.blurred) applyScaled(f.box.x, f.box.y, f.box.width, f.box.height);
+  });
+  state.customRegions.forEach((r) => applyScaled(r.x, r.y, r.w, r.h));
+
+  outCanvas.toBlob((blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `obscura-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('Downloaded');
+  }, 'image/png');
+});
+
+function applyBlurToCanvas(canvas, ctx, x, y, w, h) {
+  x = Math.round(Math.max(0, x));
+  y = Math.round(Math.max(0, y));
+  w = Math.round(Math.min(w, canvas.width - x));
+  h = Math.round(Math.min(h, canvas.height - y));
+  if (w <= 0 || h <= 0) return;
+
+  const scaledIntensity = Math.round(state.intensity * (canvas.width / els.mainCanvas.width));
+
+  if (state.style === 'gaussian') {
+    const tmp = document.createElement('canvas');
+    tmp.width = w; tmp.height = h;
+    const tctx = tmp.getContext('2d');
+    tctx.filter = `blur(${Math.round(scaledIntensity / 2)}px)`;
+    tctx.drawImage(canvas, x, y, w, h, 0, 0, w, h);
+    ctx.drawImage(tmp, x, y);
+  } else if (state.style === 'pixelate') {
+    const pixSize = Math.max(2, Math.round(scaledIntensity / 2));
+    const tmp = document.createElement('canvas');
+    const sw = Math.max(1, Math.floor(w / pixSize));
+    const sh = Math.max(1, Math.floor(h / pixSize));
+    tmp.width = sw; tmp.height = sh;
+    const tctx = tmp.getContext('2d');
+    tctx.imageSmoothingEnabled = false;
+    tctx.drawImage(canvas, x, y, w, h, 0, 0, sw, sh);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(tmp, 0, 0, sw, sh, x, y, w, h);
+    ctx.imageSmoothingEnabled = true;
+  } else if (state.style === 'black') {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x, y, w, h);
+  } else if (state.style === 'emoji') {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x, y, w, h);
+    const fontSize = Math.min(w, h) * 0.75;
+    ctx.font = `${fontSize}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🙂', x + w / 2, y + h / 2);
+  }
+}
+
+els.newImageBtn.addEventListener('click', () => {
+  state.image = null;
+  state.faces = [];
+  state.customRegions = [];
+  els.workspace.classList.remove('active');
+  els.uploadZone.style.display = 'flex';
+  els.fileInput.value = '';
+  updateStatus('Ready');
+});
+
+updateStatus('Ready — drop an image to begin');
+</script>
 </body>
 </html>
