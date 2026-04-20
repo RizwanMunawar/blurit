@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OBSCURA — Blur anything in one click. Privately.</title>
+<title>BlurIt — Blur anything in one click. Privately.</title>
 <meta name="description" content="Click to blur faces, objects, and sensitive info in your photos. AI-powered, runs 100% in your browser. Your images never leave your device.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -945,11 +945,11 @@
   <div class="nav">
     <div class="brand">
       <span class="brand-dot"></span>
-      OBSCURA
+      BlurIt
     </div>
     <div class="nav-links">
       <a href="#tool">Tool</a>
-      <a href="#features">Why Obscura</a>
+      <a href="#features">Why BlurIt</a>
       <a href="#how">How it works</a>
     </div>
   </div>
@@ -1000,7 +1000,7 @@
           <span class="editor-head-dot"></span>
           <span class="editor-head-dot"></span>
         </div>
-        <span>obscura.editor</span>
+        <span>blurit.editor</span>
       </div>
       <div class="editor-status">
         <span class="status-dot"></span>
@@ -1012,7 +1012,7 @@
     <div id="uploadZone" class="upload-zone">
       <div class="upload-inner">
         <div class="upload-icon">↑</div>
-        <div class="upload-title">Drop an image to <em>obscure</em></div>
+        <div class="upload-title">Drop an image to <em>blur</em></div>
         <div class="upload-hint">Or click anywhere to select a file from your device</div>
         <div class="upload-meta">
           <span>JPG · PNG · WEBP</span>
@@ -1111,7 +1111,7 @@
 
 <section class="features" id="features">
   <div class="features-head">
-    <div class="section-tag">Why Obscura</div>
+    <div class="section-tag">Why BlurIt</div>
     <h2>Three promises. <em>No compromises.</em></h2>
   </div>
 
@@ -1168,7 +1168,7 @@
   <div class="footer-inner">
     <div>
       <span class="brand-dot" style="display:inline-block; margin-right:8px; vertical-align:middle;"></span>
-      Obscura · Built with care for your privacy
+      BlurIt · Built with care for your privacy
     </div>
     <div>
       Made for humans who don't want to be seen.
@@ -1180,7 +1180,7 @@
 
 <script>
 // ============================================================
-// OBSCURA — Client-side blur tool
+// BlurIt — Client-side blur tool
 // ============================================================
 
 const state = {
@@ -1655,7 +1655,7 @@ els.downloadBtn.addEventListener('click', () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `obscura-${Date.now()}.png`;
+    a.download = `BlurIt-${Date.now()}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
