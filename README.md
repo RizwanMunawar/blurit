@@ -1,10 +1,12 @@
 # BlurIt
 
-👉 https://blurkit-ashy.vercel.app/
+👉 Try it ➜ https://blurkit-ashy.vercel.app/
+
+https://github.com/user-attachments/assets/c5ff665c-b980-41ef-92ca-2b1aa5576c7a
 
 Blur anything in one click. Privately. BlurIt is a privacy-first image redaction tool. Click a face, drag a box, download a clean PNG. AI detects faces automatically, and your image never leaves your browser. No uploads. No accounts. No logs. No watermarks.
 
-## ✨ Features
+## Features
 
 - **100% client-side**: Images are processed entirely in your browser. Nothing is ever uploaded to a server.
 - **AI face detection**: Automatic face detection powered by [`@vladmandic/face-api`](https://github.com/vladmandic/face-api) running locally via TinyFaceDetector.
@@ -13,13 +15,13 @@ Blur anything in one click. Privately. BlurIt is a privacy-first image redaction
 - **Adjustable intensity**: Fine-tune the blur strength from subtle to fully redacted.
 - **Zero friction**: No signup, no paywall, no email verification. Open the page, drop an image, ship it.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Use it online
 
 Just go to https://blurkit-ashy.vercel.app/ and drop an image. That's it.
 
-## 🔐 Privacy
+## Privacy
 
 This is the whole point of BlurIt, so here's the full story:
 
@@ -42,7 +44,7 @@ You can verify this by opening your browser's Network tab. After the initial pag
 
 All styles respect the intensity slider, so you can dial in exactly how hidden you want the region to be.
 
-## 🤝 Contributing
+## Contributing
 
 Contributions welcome. Since it's a single HTML file, the workflow is simple:
 
@@ -52,10 +54,9 @@ Contributions welcome. Since it's a single HTML file, the workflow is simple:
 
 Please keep the "no build step, no dependencies" ethos intact unless there's a strong reason otherwise.
 
-## 📄 License
+## License
 
-MIT, do whatever you want with it.
-
+This work has been released under [AGPL-3.0 license](https://en.wikipedia.org/wiki/GNU_Affero_General_Public_License).
 ## 🙏 Credits
 
 - Face detection: [`@vladmandic/face-api`](https://github.com/vladmandic/face-api) (a maintained fork of `face-api.js`)
