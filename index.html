@@ -1221,6 +1221,7 @@ const mainCtx = els.mainCanvas.getContext('2d');
 const overlayCtx = els.overlayCanvas.getContext('2d');
 
 let toastTimeout;
+let modelLoadPromise = null;
 function toast(message, duration = 2800) {
   els.toast.textContent = message;
   els.toast.classList.add('show');
@@ -1230,18 +1231,25 @@ function toast(message, duration = 2800) {
 
 async function ensureModelsLoaded() {
   if (state.modelsLoaded) return true;
-  try {
-    els.loaderText.textContent = 'Loading AI model…';
-    els.loader.classList.add('active');
-    const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
-    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-    state.modelsLoaded = true;
-    return true;
-  } catch (err) {
-    console.error('Model load failed', err);
-    toast('Could not load face detection model. Manual blur still works.');
-    return false;
+  if (!modelLoadPromise) {
+    modelLoadPromise = (async () => {
+      try {
+        const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+        await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        state.modelsLoaded = true;
+        return true;
+      } catch (err) {
+        console.error('Model load failed', err);
+        toast('Could not load face detection model. Manual blur still works.');
+        return false;
+      } finally {
+        modelLoadPromise = null;
+      }
+    })();
   }
+  els.loaderText.textContent = 'Loading AI model…';
+  els.loader.classList.add('active');
+  return modelLoadPromise;
 }
 
 els.uploadZone.addEventListener('click', () => els.fileInput.click());
